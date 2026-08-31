@@ -250,7 +250,7 @@ st.markdown(
             color: #f4f7fb;
         }
         .block-container {
-            padding-top: 2rem;
+            padding-top: 1rem;
             padding-bottom: 2rem;
             max-width: 1200px;
         }
@@ -264,19 +264,14 @@ st.markdown(
         .muted {
             color: #9fb3c8;
         }
+        .top-metrics {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
     </style>
     """,
     unsafe_allow_html=True,
 )
-
-col_a, col_b, col_c = st.columns(3)
-persisted_index, persisted_chunks = load_persisted_state()
-with col_a:
-    st.metric("Stored chunks", len(persisted_chunks))
-with col_b:
-    st.metric("Index status", "Ready" if persisted_index is not None else "Empty")
-with col_c:
-    st.metric("Answer model", DEFAULT_CHAT_MODEL)
 
 st.markdown(
     """
@@ -287,6 +282,18 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+persisted_index, persisted_chunks = load_persisted_state()
+
+st.markdown('<div class="top-metrics">', unsafe_allow_html=True)
+col_a, col_b, col_c = st.columns(3)
+with col_a:
+    st.metric("Stored chunks", len(persisted_chunks))
+with col_b:
+    st.metric("Index status", "Ready" if persisted_index is not None else "Empty")
+with col_c:
+    st.metric("Answer model", DEFAULT_CHAT_MODEL)
+st.markdown('</div>', unsafe_allow_html=True)
 
 with st.sidebar:
     st.header("Ingestion")
