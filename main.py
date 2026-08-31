@@ -153,6 +153,7 @@ def save_index(index, chunks: List[Chunk]):
         pickle.dump(chunks, f)
 
 
+@st.cache_resource
 def load_index():
     if not os.path.exists(INDEX_PATH) or not os.path.exists(METADATA_PATH):
         return None, []
@@ -162,6 +163,7 @@ def load_index():
     return index, chunks
 
 
+@st.cache_resource
 def load_persisted_state():
     index, chunks = load_index()
     if index is None:
@@ -315,8 +317,6 @@ if not api_key_present:
 
 if "chunks" not in st.session_state:
     st.session_state.chunks = []
-if "embeddings" not in st.session_state:
-    st.session_state.embeddings = None
 if "index" not in st.session_state:
     st.session_state.index = None
 if "sources_ready" not in st.session_state:
@@ -339,9 +339,8 @@ if process_clicked:
             st.error("No usable article text could be extracted.")
         else:
             with st.spinner("Building retrieval index..."):
-                index, embeddings = build_index(chunks)
+                index, _ = build_index(chunks)
             st.session_state.chunks = chunks
-            st.session_state.embeddings = embeddings
             st.session_state.index = index
             st.session_state.sources_ready = True
             save_index(index, chunks)
@@ -371,7 +370,7 @@ with col2:
 if ask_clicked:
     if not query.strip():
         st.warning("Please enter a question.")
-    elif not st.session_state.sources_ready or st.session_state.embeddings is None:
+    elif not st.session_state.sources_ready or st.session_state.index is None:
         st.warning("Process the sources before asking a question.")
     elif not api_key_present:
         st.error("Missing GROQ_API_KEY.")
