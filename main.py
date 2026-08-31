@@ -163,14 +163,6 @@ def load_index():
     return index, chunks
 
 
-@st.cache_resource
-def load_persisted_state():
-    index, chunks = load_index()
-    if index is None:
-        return None, []
-    return index, chunks
-
-
 def retrieve(query: str, chunks: List[Chunk], index, top_k: int = 5):
     embedder = get_embedder()
     query_embedding = embedder.encode([query], convert_to_numpy=True).astype(np.float32)
@@ -285,18 +277,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-persisted_index, persisted_chunks = load_persisted_state()
-
-st.markdown('<div class="top-metrics">', unsafe_allow_html=True)
-col_a, col_b, col_c = st.columns(3)
-with col_a:
-    st.metric("Stored chunks", len(persisted_chunks))
-with col_b:
-    st.metric("Index status", "Ready" if persisted_index is not None else "Empty")
-with col_c:
-    st.metric("Answer model", DEFAULT_CHAT_MODEL)
-st.markdown('</div>', unsafe_allow_html=True)
-
 with st.sidebar:
     st.header("Ingestion")
     st.caption("Add article URLs directly or upload a text file with one URL per line.")
@@ -321,11 +301,6 @@ if "index" not in st.session_state:
     st.session_state.index = None
 if "sources_ready" not in st.session_state:
     st.session_state.sources_ready = False
-
-if persisted_index is not None and not st.session_state.sources_ready:
-    st.session_state.index = persisted_index
-    st.session_state.chunks = persisted_chunks
-    st.session_state.sources_ready = True
 
 all_urls = list(dict.fromkeys(manual_urls + load_uploaded_urls(uploaded_file)))
 
@@ -406,9 +381,4 @@ if st.session_state.sources_ready and st.session_state.chunks:
         st.write(f"- {source}")
 
 
-def run_app():
-    pass
-
-
-if __name__ == "__main__":
-    run_app()
+# Streamlit runs this file directly.
