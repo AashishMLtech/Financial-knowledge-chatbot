@@ -1,45 +1,64 @@
 # Financial Knowledge Chatbot
 
-A Streamlit app for financial news research. Add article URLs, build a retrieval index from the article text, and ask questions grounded only in the retrieved excerpts.
+An AI-powered Streamlit app for researching financial news with a clean, source-grounded workflow. Paste article URLs, process the sources, and ask questions with answers constrained to retrieved excerpts.
 
-## What It Does
+## Live Demo
 
-The app:
+- Deployed app: [financial-knowledge-chatbot.onrender.com](https://financial-knowledge-chatbot.onrender.com/)
 
-- extracts content from financial news URLs
-- splits each article into smaller chunks
-- creates local embeddings for semantic search
-- stores the FAISS index on disk for reuse
-- sends only the most relevant excerpts to a Groq-hosted model
-- answers with citations and a strong no-hallucination instruction
+## Overview
+
+This project is designed to help users:
+
+- extract article text from financial news URLs
+- split content into smaller chunks for lightweight retrieval
+- rank the most relevant excerpts with a memory-friendly search layer
+- generate concise answers using Groq-hosted models
+- keep responses grounded in the provided sources
+
+## Why This Version
+
+The current implementation is intentionally lightweight so it can run within a small deployment footprint. Compared with embedding-heavy approaches, it:
+
+- uses less memory at startup
+- avoids loading large vector models
+- keeps retrieval simple and fast
+- reduces the chance of deployment failures on smaller Render instances
 
 ## Tech Stack
 
 - `Python`
 - `Streamlit`
+- `Groq API`
 - `newspaper3k`
 - `requests`
 - `beautifulsoup4`
-- `sentence-transformers`
-- `FAISS`
-- `Groq API`
 - `python-dotenv`
+- `lxml_html_clean`
 
-## How The Flow Works
+## How It Works
 
 ```mermaid
 flowchart TD
-    A[User adds article URLs] --> B[Extract article text]
+    A[User adds article URLs] --> B[Fetch article text]
     B --> C[Fallback HTML cleanup if needed]
-    C --> D[Split text into chunks]
-    D --> E[Create embeddings with sentence-transformers]
-    E --> F[Store vectors in FAISS]
-    F --> G[Save FAISS index + metadata locally]
-    G --> H[User asks a question]
-    H --> I[Retrieve top matching chunks]
-    I --> J[Send only retrieved excerpts to Groq model]
-    J --> K[Return grounded answer with sources]
+    C --> D[Split text into compact chunks]
+    D --> E[Build lightweight retrieval store]
+    E --> F[Save store locally for reuse]
+    F --> G[User asks a question]
+    G --> H[Rank the most relevant excerpts]
+    H --> I[Send short context to Groq]
+    I --> J[Return grounded answer with sources]
 ```
+
+## Key Features
+
+- URL ingestion from the sidebar or uploaded text files
+- fallback HTML extraction when article parsing fails
+- lightweight lexical retrieval to keep memory usage low
+- optional local saved index loading
+- Groq-based answer generation with strict grounding
+- source expanders for quick verification
 
 ## Project Structure
 
@@ -54,7 +73,7 @@ flowchart TD
 
 ```bash
 git clone https://github.com/AashishMLtech/Financial-knowledge-chatbot.git
-cd <repo-folder>
+cd Financial-knowledge-chatbot
 ```
 
 ### 2. Create and activate a virtual environment
@@ -101,10 +120,25 @@ If your account does not have access to that model, try:
 GROQ_MODEL=qwen/qwen3.6-27b
 ```
 
-## Run The App
+## Run Locally
 
 ```bash
 streamlit run main.py
+```
+
+## Deploy On Render
+
+Use this start command:
+
+```bash
+streamlit run main.py --server.port $PORT --server.address 0.0.0.0
+```
+
+Add these environment variables in Render:
+
+```env
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=openai/gpt-oss-120b
 ```
 
 ## Usage
@@ -115,18 +149,13 @@ streamlit run main.py
 4. Ask a question in the main panel.
 5. Review the answer and the supporting excerpts.
 
-## Key Features
-
-- URL ingestion from sidebar inputs or uploaded text files
-- fallback HTML extraction when article parsing fails
-- semantic retrieval using local embeddings
-- persistent FAISS storage for faster reuse
-- Groq-based answer generation with low temperature
-- source expanders for easier verification
-
 ## Notes
 
 - The assistant is instructed to answer only from retrieved excerpts.
 - If the sources do not support an answer, it should refuse instead of guessing.
 - Keep `.env` out of GitHub.
-- The FAISS index files are generated locally when you process sources.
+- The saved retrieval store is generated locally when you process sources.
+
+## License
+
+No license has been specified yet.
