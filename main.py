@@ -2,14 +2,15 @@ import os
 import re
 import pickle
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 import numpy as np
 import streamlit as st
 from dotenv import load_dotenv
-from groq import Groq
-from newspaper import Article
-from sentence_transformers import SentenceTransformer
+
+if TYPE_CHECKING:
+    from groq import Groq
+    from sentence_transformers import SentenceTransformer
 
 try:
     import faiss
@@ -35,11 +36,15 @@ class Chunk:
 
 
 @st.cache_resource
-def get_embedder() -> SentenceTransformer:
+def get_embedder():
+    from sentence_transformers import SentenceTransformer
+
     return SentenceTransformer(EMBED_MODEL_NAME)
 
 
-def get_groq_client() -> Optional[Groq]:
+def get_groq_client() -> Optional["Groq"]:
+    from groq import Groq
+
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         return None
@@ -65,6 +70,8 @@ def split_text(text: str, chunk_size: int = 700, overlap: int = 100) -> List[str
 
 
 def load_article(url: str) -> Optional[str]:
+    from newspaper import Article
+
     try:
         article = Article(url)
         article.download()
@@ -215,7 +222,7 @@ Return:
 """.strip()
 
 
-def answer_question(client: Groq, query: str, contexts: List[dict]) -> str:
+def answer_question(client: "Groq", query: str, contexts: List[dict]) -> str:
     prompt = build_prompt(query, contexts)
     response = client.chat.completions.create(
         model=DEFAULT_CHAT_MODEL,
@@ -277,18 +284,6 @@ st.markdown(
         <h1 style="margin-bottom:0.25rem;">Financial Knowledge Chatbot</h1>
         <p class="muted" style="margin-bottom:0;">Precise article retrieval for market and finance research, powered by local embeddings and a Groq-hosted open model.</p>
     </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    """
-    <style>
-        .top-metrics {
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
-        }
-    </style>
     """,
     unsafe_allow_html=True,
 )
