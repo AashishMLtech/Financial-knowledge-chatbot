@@ -46,7 +46,7 @@ def get_groq_client() -> Optional[Groq]:
     return Groq(api_key=api_key)
 
 
-def split_text(text: str, chunk_size: int = 900, overlap: int = 150) -> List[str]:
+def split_text(text: str, chunk_size: int = 700, overlap: int = 100) -> List[str]:
     text = re.sub(r"\s+", " ", text).strip()
     if not text:
         return []
@@ -163,6 +163,10 @@ def load_index():
     return index, chunks
 
 
+def clear_index_cache():
+    load_index.clear()
+
+
 def retrieve(query: str, chunks: List[Chunk], index, top_k: int = 5):
     embedder = get_embedder()
     query_embedding = embedder.encode([query], convert_to_numpy=True).astype(np.float32)
@@ -277,6 +281,18 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown(
+    """
+    <style>
+        .top-metrics {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 with st.sidebar:
     st.header("Ingestion")
     st.caption("Add article URLs directly or upload a text file with one URL per line.")
@@ -290,6 +306,8 @@ with st.sidebar:
 
     top_k = st.slider("Retrieval depth", min_value=3, max_value=8, value=5)
     process_clicked = st.button("Process sources", use_container_width=True)
+    load_saved_clicked = st.button("Load saved index", use_container_width=True)
+    clear_loaded_clicked = st.button("Clear loaded index", use_container_width=True)
 
 api_key_present = bool(os.getenv("GROQ_API_KEY"))
 if not api_key_present:
@@ -299,10 +317,32 @@ if "chunks" not in st.session_state:
     st.session_state.chunks = []
 if "index" not in st.session_state:
     st.session_state.index = None
+if "saved_chunks" not in st.session_state:
+    st.session_state.saved_chunks = 0
 if "sources_ready" not in st.session_state:
     st.session_state.sources_ready = False
 
 all_urls = list(dict.fromkeys(manual_urls + load_uploaded_urls(uploaded_file)))
+
+if load_saved_clicked:
+    with st.spinner("Loading saved FAISS index..."):
+        saved_index, saved_chunks = load_index()
+    if saved_index is None:
+        st.warning("No saved FAISS index was found.")
+    else:
+        st.session_state.index = saved_index
+        st.session_state.chunks = saved_chunks
+        st.session_state.saved_chunks = len(saved_chunks)
+        st.session_state.sources_ready = True
+        st.success(f"Loaded saved index with {len(saved_chunks)} chunks.")
+
+if clear_loaded_clicked:
+    st.session_state.index = None
+    st.session_state.chunks = []
+    st.session_state.saved_chunks = 0
+    st.session_state.sources_ready = False
+    clear_index_cache()
+    st.info("Cleared loaded index from session.")
 
 if process_clicked:
     if not all_urls:
@@ -317,6 +357,7 @@ if process_clicked:
                 index, _ = build_index(chunks)
             st.session_state.chunks = chunks
             st.session_state.index = index
+            st.session_state.saved_chunks = len(chunks)
             st.session_state.sources_ready = True
             save_index(index, chunks)
             st.success(f"Indexed {len(chunks)} chunks from {len(all_urls)} source(s).")
@@ -337,6 +378,7 @@ with col2:
     st.metric("Indexed chunks", len(st.session_state.chunks))
     st.metric("Sources loaded", len(all_urls))
     st.caption(f"Chat model: `{DEFAULT_CHAT_MODEL}`")
+    st.caption(f"Saved chunks: {st.session_state.saved_chunks}")
     if st.session_state.sources_ready:
         if st.session_state.chunks:
             avg_len = sum(len(chunk.text) for chunk in st.session_state.chunks) / len(st.session_state.chunks)
