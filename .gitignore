@@ -1,0 +1,6 @@
+.env
+faiss_store_openai.pkl
+faiss_store_llama2.pkl
+__pycache__/
+.venv/
+.idea/
